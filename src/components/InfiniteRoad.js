@@ -1,6 +1,7 @@
 import { ROAD_SPEED } from "../config.js";
 
-const SEGMENT_COUNT = 4;
+const BASE_SEGMENT_COUNT = 4;
+const SEGMENT_COUNT = 6;
 const SEAM_OVERLAP = 14;
 
 export class InfiniteRoad {
@@ -67,7 +68,12 @@ export class InfiniteRoad {
   #resetStack() {
     const height = this.segmentHeight;
     for (let i = 0; i < SEGMENT_COUNT; i += 1) {
-      this.positions[i] = (i - 2) * height;
+      const positionIndex = i < BASE_SEGMENT_COUNT
+        ? i - 2
+        : i === BASE_SEGMENT_COUNT
+          ? -3
+          : 2;
+      this.positions[i] = positionIndex * height;
     }
     this.#paint();
   }
