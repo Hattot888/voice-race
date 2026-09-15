@@ -208,7 +208,7 @@ export class RealSpeechService extends SpeechService {
     if (clearTranscript) this.session = null;
   }
 
-  async assessPronunciation(audio, expectedText, language = "ar-EG") {
+  async assessPronunciation(audio, expectedText, language = "ar-EG", question = null) {
     const session = this.session;
     this.session = null;
 
@@ -217,7 +217,8 @@ export class RealSpeechService extends SpeechService {
       throw new SpeechError("لم نتمكن من سماعك، حاول مرة أخرى.", "empty_audio");
     }
 
-    const locale = language || session?.language || "ar-EG";
+    const locale = language || question?.language || session?.language || "ar-EG";
+    const referenceText = question?.fullyVocalizedText || expectedText;
     const azureKey = import.meta.env.VITE_AZURE_SPEECH_KEY;
     const azureRegion = import.meta.env.VITE_AZURE_SPEECH_REGION;
     const hasRecognizer = Boolean(getRecognitionCtor());
@@ -230,7 +231,7 @@ export class RealSpeechService extends SpeechService {
     let azureSignals = null;
     if (hasAzure) {
       try {
-        azureSignals = await this.#assessWithAzure(blob, expectedText, locale, azureKey, azureRegion);
+        azureSignals = await this.#assessWithAzure(blob, referenceText, locale, azureKey, azureRegion);
       } catch (error) {
         if (!session?.recognizedText && !session?.alternatives?.length) throw error;
       }
@@ -247,12 +248,14 @@ export class RealSpeechService extends SpeechService {
     }
 
     return normalizePronunciationResult({
-      expectedText,
+      expectedText: referenceText,
       recognizedText,
       alternatives,
       pronunciationScore: azureSignals?.pronunciationScore,
       wordAccuracy: azureSignals?.wordAccuracy,
       confidence: azureSignals?.confidence || session?.confidence || 0,
+      providerPhonemes: azureSignals?.providerPhonemes || null,
+      question,
     });
   }
 
@@ -262,7 +265,7 @@ export class RealSpeechService extends SpeechService {
     const assessment = {
       ReferenceText: expectedText,
       GradingSystem: "HundredMark",
-      Granularity: "Word",
+      Granularity: "Phoneme",
       Dimension: "Comprehensive",
       EnableMiscue: true,
     };
@@ -306,11 +309,23 @@ export class RealSpeechService extends SpeechService {
       const pronunciationScore = Number(
         assessmentResult.PronScore ?? assessmentResult.AccuracyScore ?? wordAccuracy,
       );
+      const providerPhonemes = [];
+      for (const word of words) {
+        for (const phoneme of word.Phonemes || []) {
+          const accuracy = Number(phoneme.PronunciationAssessment?.AccuracyScore);
+          providerPhonemes.push({
+            symbol: phoneme.Phoneme || "",
+            accuracy: Number.isFinite(accuracy) ? accuracy : null,
+          });
+        }
+      }
+      const scoredPhonemes = providerPhonemes.filter((item) => item.accuracy != null);
       return {
         recognizedText,
         pronunciationScore: Number.isFinite(pronunciationScore) ? pronunciationScore : null,
         wordAccuracy: Number.isFinite(wordAccuracy) ? wordAccuracy : null,
         confidence: Number(best.Confidence) || 0,
+        providerPhonemes: scoredPhonemes.length ? scoredPhonemes : null,
       };
     } catch (error) {
       if (error instanceof SpeechError) throw error;

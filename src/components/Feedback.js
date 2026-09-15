@@ -1,7 +1,7 @@
 const COPY = {
-  correct: { title: "ممتاز!", en: "Great!" },
-  close: { title: "قريب جداً!", en: "Almost!" },
-  wrong: { title: "حاول مرة أخرى", en: "Try again!" },
+  correct: { title: "ممتاز! نطقك رائع!", en: "" },
+  close: { title: "قريب جدًا! جرّب مرة أخرى.", en: "" },
+  wrong: { title: "حاول مرة أخرى.", en: "" },
   error: { title: "لم نتمكن من سماعك، حاول مرة أخرى.", en: "" },
 };
 

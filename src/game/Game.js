@@ -1,4 +1,4 @@
-import { ASSETS, COINS, FEEDBACK_MS, QUESTION_TRANSITION_MS, RECORDING_MAX_MS, ROAD_SPEED, SPEECH_DEBUG } from "../config.js";
+import { ASSETS, COINS, FEEDBACK_MS, QUESTION_TRANSITION_MS, RACE, RECORDING_MAX_MS, ROAD_SPEED, SPEECH_DEBUG } from "../config.js";
 import { AudioManager } from "../audio/AudioManager.js";
 import { Background } from "../components/Background.js";
 import { BotCar, PlayerCar } from "../components/Cars.js";
@@ -6,15 +6,16 @@ import { Feedback } from "../components/Feedback.js";
 import { ExitModal, FinishScreen } from "../components/FinishScreen.js";
 import { GameHUD } from "../components/GameHUD.js";
 import { InfiniteRoad } from "../components/InfiniteRoad.js";
-import { BotIndicator, PlayerIndicator } from "../components/Indicators.js";
+import { RacePositionBar } from "../components/Indicators.js";
 import { MicrophoneButton } from "../components/MicrophoneButton.js";
 import { QuestionPanel } from "../components/QuestionPanel.js";
 import { GameStateManager } from "./GameStateManager.js";
 import { QuestionManager } from "./QuestionManager.js";
 import { RaceManager } from "./RaceManager.js";
 import { createSpeechService } from "../speech/createSpeechService.js";
+import { logSpeechDebug, SpeechDebugPanel } from "../speech/speechDebug.js";
 import { SpeechError } from "../speech/SpeechService.js";
-import { SpeechDebugPanel, logSpeechDebug } from "../speech/speechDebug.js";
+import { smoothDamp } from "../utils/easing.js";
 
 export class Game {
   constructor(root) {
@@ -64,11 +65,10 @@ export class Game {
     this.hud = new GameHUD(this.ui);
     this.questionPanel = new QuestionPanel(this.ui);
     this.microphone = new MicrophoneButton(this.ui);
-    this.indicatorRail = document.createElement("div");
-    this.indicatorRail.className = "indicator-rail";
-    this.ui.appendChild(this.indicatorRail);
-    this.playerIndicator = new PlayerIndicator(this.indicatorRail, ASSETS.user);
-    this.botIndicator = new BotIndicator(this.indicatorRail, ASSETS.hakim);
+    this.raceBar = new RacePositionBar(this.ui, {
+      playerSrc: ASSETS.user,
+      botSrc: ASSETS.hakim,
+    });
     this.feedback = new Feedback(this.ui);
     this.finish = new FinishScreen(this.ui);
     this.exitModal = new ExitModal(this.ui);
@@ -124,6 +124,7 @@ export class Game {
     this.finish.hide();
     this.exitModal.hide();
     this.particles.replaceChildren();
+    this.raceBar.reset();
     this.#syncQuestion();
     this.#syncHud();
     this.microphone.setState("idle");
@@ -140,10 +141,6 @@ export class Game {
 
   #syncHud() {
     this.hud.setCoins(this.state.coins);
-    this.playerIndicator.setPlace(this.race.playerPlace);
-    this.botIndicator.setPlace(this.race.botPlace);
-    const playerFirst = this.race.playerPlace === 1;
-    this.indicatorRail.classList.toggle("bot-leading", !playerFirst);
   }
 
   playWord() {
@@ -154,7 +151,7 @@ export class Game {
     }
     this.#unlockAudio();
     this.audio.stopSpeech();
-    this.audio.speakWord(q.word, q.language, q.audio);
+    this.audio.speakWord(q.fullyVocalizedText || q.word, q.language, q.audio);
   }
 
   async onMicPressed() {
@@ -183,11 +180,7 @@ export class Game {
         8000,
         "mic_timeout",
       );
-      this.pendingQuestion = {
-        id: q.id,
-        expectedText: q.expectedText,
-        language: q.language || "ar-EG",
-      };
+      this.pendingQuestion = q;
       this.state.toRecording();
       this.microphone.setState("recording");
       this.busy = false;
@@ -209,7 +202,7 @@ export class Game {
     this.assessing = true;
     this.clearTimers();
     const q = this.pendingQuestion || this.questions.current;
-    const expectedText = q?.expectedText;
+    const expectedText = q?.fullyVocalizedText || q?.expectedText;
     const language = q?.language || "ar-EG";
     const questionId = q?.id;
     try {
@@ -225,7 +218,7 @@ export class Game {
         throw new SpeechError("لم نتمكن من سماعك، حاول مرة أخرى.", "question_changed");
       }
       const assessment = await this.#withTimeout(
-        this.speech.assessPronunciation(audio, expectedText, language),
+        this.speech.assessPronunciation(audio, expectedText, language, q),
         10000,
         "assess_timeout",
       );
@@ -281,12 +274,12 @@ export class Game {
     }
     this.state.toFeedback(result);
     this.microphone.setState(result);
-    this.feedback.show(result);
+    this.feedback.show(result, assessment.childFeedback);
 
     if (result === "correct") {
       this.race.applyCorrect();
       this.state.coins += COINS.correct;
-      this.roadBurst = 420;
+      this.roadSpeedTarget = ROAD_SPEED + RACE.roadBurstCorrect;
       this.playerBurst = 0.08;
       this.playerCar.setGlow(true);
       this.audio.playCorrect();
@@ -295,7 +288,7 @@ export class Game {
     } else if (result === "close") {
       this.race.applyClose();
       this.state.coins += COINS.close;
-      this.roadBurst = 180;
+      this.roadSpeedTarget = ROAD_SPEED + RACE.roadBurstClose;
       this.playerBurst = 0.04;
       this.playerCar.setGlow(true);
       this.audio.playClose();
@@ -314,10 +307,9 @@ export class Game {
 
   advanceAfterFeedback() {
     this.feedback.hide();
+    this.roadSpeedTarget = ROAD_SPEED;
     this.playerCar.setGlow(false);
     this.botCar.setGlow(false);
-    this.playerBurst = 0;
-    this.botBurst = 0;
     this.questionPanel.setDisabled(true);
 
     if (this.questions.isLast) {
@@ -386,6 +378,7 @@ export class Game {
 
   update(deltaTime) {
     this.race.tick(deltaTime);
+    this.raceBar.update(deltaTime, this.race.getRaceState());
     this.roadBurst *= 1 - Math.min(1, deltaTime * 2.4);
     this.road.setSpeed(ROAD_SPEED + this.roadBurst);
     this.road.update(deltaTime);

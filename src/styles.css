@@ -411,6 +411,123 @@ button {
   transform: scaleX(-1);
 }
 
+.race-bar {
+  position: absolute;
+  top: 50%;
+  left: clamp(18px, 2.3vw, 36px);
+  width: 116px;
+  height: min(52vh, 500px);
+  transform: translateY(-50%);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.race-bar-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(10, 21, 35, 0.83), rgba(10, 39, 59, 0.9));
+  border: 3px solid rgba(95, 205, 255, 0.7);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.05),
+    0 18px 32px rgba(3, 24, 42, 0.3);
+}
+
+.race-bar-track::before {
+  content: "";
+  position: absolute;
+  inset: 14px 26px 14px 26px;
+  border-radius: 18px;
+  background: rgba(12, 31, 49, 0.7);
+}
+
+.race-bar-line {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  bottom: 18px;
+  width: 8px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(109, 219, 255, 0.75), rgba(79, 168, 255, 0.75));
+  box-shadow: 0 0 18px rgba(77, 196, 255, 0.5);
+}
+
+.race-bar-finish {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  color: #dffbff;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.race-marker {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  transition: transform 180ms ease;
+}
+
+.race-avatar {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(95,210,255,0.26));
+  border: 3px solid rgba(255,255,255,0.92);
+  box-shadow: 0 0 0 4px rgba(85, 205, 255, 0.2), 0 8px 18px rgba(10, 22, 42, 0.25);
+}
+
+.race-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.race-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(18, 46, 84, 0.9), rgba(11, 27, 49, 0.95));
+  border: 1px solid rgba(154, 228, 255, 0.35);
+  box-shadow: 0 8px 12px rgba(10, 20, 40, 0.18);
+}
+
+.player-marker .race-rank {
+  background: linear-gradient(180deg, #3bc4ff, #1866f7);
+}
+
+.bot-marker .race-rank {
+  background: linear-gradient(180deg, #46de9d, #22bc78);
+}
+
+.player-marker .race-avatar {
+  box-shadow: 0 0 0 4px rgba(64, 184, 255, 0.25), 0 8px 18px rgba(10, 22, 42, 0.25);
+}
+
+.bot-marker .race-avatar {
+  box-shadow: 0 0 0 4px rgba(90, 255, 170, 0.2), 0 8px 18px rgba(10, 22, 42, 0.25);
+}
+
 .indicator-rail {
   position: absolute;
   left: 18px;

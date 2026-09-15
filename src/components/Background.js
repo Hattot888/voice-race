@@ -1,6 +1,5 @@
 import {
   BACKGROUND_BOTTOM,
-  BACKGROUND_EASE_ZONE,
   BACKGROUND_SPEED,
   BACKGROUND_TOP,
 } from "../config.js";
@@ -15,32 +14,18 @@ export class Background {
     this.img.draggable = false;
     this.el.appendChild(this.img);
     root.appendChild(this.el);
+    this.phase = 0;
     this.y = 0;
-    this.direction = 1;
   }
 
   resize() {}
 
   update(deltaTime) {
-    const top = BACKGROUND_TOP;
-    const bottom = BACKGROUND_BOTTOM;
-    const target = this.direction > 0 ? bottom : top;
-    const distance = Math.abs(target - this.y);
-    const zone = Math.max(1, BACKGROUND_EASE_ZONE);
-    const t = Math.min(1, distance / zone);
-    const ease = t * t * (3 - 2 * t);
-    const speed = BACKGROUND_SPEED * Math.max(0.22, ease);
-
-    this.y += this.direction * speed * deltaTime;
-
-    if (this.direction > 0 && this.y >= bottom) {
-      this.y = bottom;
-      this.direction = -1;
-    } else if (this.direction < 0 && this.y <= top) {
-      this.y = top;
-      this.direction = 1;
-    }
-
+    const span = (BACKGROUND_BOTTOM - BACKGROUND_TOP) / 2;
+    const mid = (BACKGROUND_BOTTOM + BACKGROUND_TOP) / 2;
+    const omega = span === 0 ? 0 : BACKGROUND_SPEED / Math.max(1, span * Math.PI);
+    this.phase += deltaTime * omega * Math.PI;
+    this.y = mid + span * Math.sin(this.phase);
     this.img.style.transform = `translate3d(-50%, calc(-50% + ${this.y}px), 0) scale(1.18)`;
   }
 }

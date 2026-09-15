@@ -38,11 +38,17 @@ export const RACE = {
   closeGain: 5,
   wrongBotGain: 5,
   botPassiveGain: 1,
-  pixelsPerPoint: 7,
-  boostCorrect: 120,
-  boostClose: 55,
-  boostWrong: 48,
+  pixelsPerPoint: 8,
+  surgeCorrect: 34,
+  surgeClose: 16,
+  surgeWrong: 22,
   maxVisualLead: 150,
+  carSmoothTime: 0.58,
+  markerSmoothTime: 0.72,
+  surgeDecay: 2.4,
+  roadBurstCorrect: 260,
+  roadBurstClose: 110,
+  roadSmoothTime: 0.5,
 };
 
 export const COINS = {

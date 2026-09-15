@@ -53,7 +53,7 @@ export class MockSpeechService extends SpeechService {
     this.stopped = false;
   }
 
-  async assessPronunciation(audio, expectedText) {
+  async assessPronunciation(audio, expectedText, language = "ar-EG", question = null) {
     if (!this.stopped && audio?.complete !== true) {
       throw new SpeechError("لم نتمكن من سماعك، حاول مرة أخرى.", "not_stopped");
     }
@@ -63,20 +63,15 @@ export class MockSpeechService extends SpeechService {
     this.forcedResult = null;
     this.index += 1;
     const pronunciationScore = SCORE_BY_RESULT[mapped] ?? 20;
-    const recognizedText = mapped === "wrong" ? "" : expectedText;
-    const assessment = normalizePronunciationResult({
+    const recognizedText = mapped === "wrong" ? "سيارة" : expectedText;
+    return normalizePronunciationResult({
       expectedText,
       recognizedText,
       alternatives: recognizedText ? [recognizedText] : [],
       pronunciationScore,
       wordAccuracy: pronunciationScore,
       confidence: pronunciationScore / 100,
+      question,
     });
-    if (mapped === "close") {
-      assessment.status = "CLOSE";
-      assessment.result = "close";
-      assessment.pronunciationScore = pronunciationScore;
-    }
-    return assessment;
   }
 }
