@@ -42,8 +42,7 @@ export class InfiniteRoad {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     this.viewportHeight = vh;
-    const maxWidth = Math.min(vw * 0.74, vh * 0.78 * (this.naturalWidth / this.naturalHeight));
-    const width = Math.max(300, maxWidth);
+    const width = Math.max(220, vw * 0.56);
     const height = width * (this.naturalHeight / this.naturalWidth);
     this.segmentHeight = height;
     this.wrap.style.width = `${width}px`;
